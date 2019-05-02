@@ -1,0 +1,51 @@
+---
+- name: Create timestamp file
+  hosts: all
+  tasks:
+    - shell: date +"%H:%M"
+      register: shell_time
+    - local_action: copy content={{ shell_time }} dest=/tmp/time.txt
+
+- name: Check memory status usin free
+  hosts: all
+  tasks:
+    - shell: "free -m"
+      register: shell_free
+
+    - debug:
+        var: shell_free.stdout_lines
+
+
+- name: Check memory status different using proc
+  hosts: all
+  become: true
+  tasks:
+    - shell: "cat /proc/meminfo"
+      register: shell_meminfo
+
+    - debug:
+        var: shell_meminfo.stdout_lines
+    - copy: content="{{ shell_meminfo.stdout_lines }}" dest=/tmp/proc.json
+
+- name: Memory and Cpu usage with top
+  hosts: all
+  become: true
+  tasks:
+    - shell: "top -b -n 1"
+      register: shell_top
+
+    - debug:
+        var: shell_top.stdout_lines
+    - copy: content="{{ shell_free.stdout_lines }}" dest=/tmp/free_memory.json
+
+# Specifying a destination path for free_memory_json
+    - fetch:
+       src: /tmp/free_memory.json
+       dest: /home/ansible/free_memory.json
+       flat: yes
+
+# Specifying a destination path for proc.json
+    - fetch:
+       src: /tmp/proc.json
+       dest: /home/ansible/proc.json
+       flat: yes
